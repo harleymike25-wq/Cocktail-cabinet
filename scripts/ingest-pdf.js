@@ -19,7 +19,9 @@ function requireEnv(name) {
   return val;
 }
 
-const PDF_PATH = path.resolve(process.argv[2] || path.join(__dirname, "cocktails.pdf"));
+const args = process.argv.slice(2).filter(a => a !== '--clear');
+const CLEAR = process.argv.includes('--clear');
+const PDF_PATH = path.resolve(args[0] || path.join(__dirname, "cocktails.pdf"));
 const client = new Anthropic({ apiKey: requireEnv("ANTHROPIC_API_KEY") });
 const supabase = createClient(
   requireEnv("VITE_SUPABASE_URL"),
@@ -68,9 +70,11 @@ async function ingest() {
   const base64 = fs.readFileSync(PDF_PATH).toString("base64");
 
   console.log("Sending to Claude for recipe extraction (may take a minute)...");
-  const response = await client.messages.create({
+  let text = "";
+  process.stdout.write("Receiving: ");
+  const stream = await client.messages.stream({
     model: "claude-sonnet-4-6",
-    max_tokens: 8000,
+    max_tokens: 32000,
     messages: [
       {
         role: "user",
@@ -87,8 +91,16 @@ async function ingest() {
       },
     ],
   });
-
-  const text = response.content[0].text.trim();
+  let charCount = 0;
+  for await (const chunk of stream) {
+    if (chunk.type === "content_block_delta" && chunk.delta.type === "text_delta") {
+      text += chunk.delta.text;
+      charCount += chunk.delta.text.length;
+      if (charCount % 5000 < chunk.delta.text.length) process.stdout.write(".");
+    }
+  }
+  console.log(` ${charCount} chars`);
+  text = text.trim();
   let recipes;
   try {
     const stripped = text.replace(/^```(?:json)?\n?/m, '').replace(/\n?```\s*$/m, '');
@@ -114,6 +126,12 @@ async function ingest() {
   }
 
   console.log(`Extracted ${recipes.length} recipes. Inserting into Supabase...`);
+  if (CLEAR) {
+    console.log("Clearing existing recipes...");
+    const { error: delErr } = await supabase.from("recipes").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    if (delErr) { console.error("Failed to clear recipes:", delErr.message); process.exit(1); }
+    console.log("Cleared.");
+  }
   let inserted = 0;
   for (let i = 0; i < recipes.length; i += 20) {
     const batch = recipes.slice(i, i + 20);

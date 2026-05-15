@@ -1,5 +1,6 @@
 import { useState } from "react";
 import SuggestionCard from "../components/SuggestionCard";
+import RandomizerModal from "../components/RandomizerModal";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { getSuggestions } from "../lib/api";
@@ -9,6 +10,7 @@ export default function SuggestPage({ cabinet }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
+  const [showRandomizer, setShowRandomizer] = useState(false);
 
   async function fetchSuggestions() {
     if (cabinet.length === 0) { setError('Add some bottles first in "My Bottles"'); return; }
@@ -49,7 +51,12 @@ export default function SuggestPage({ cabinet }) {
         <button className="btn btn--primary" onClick={fetchSuggestions} disabled={loading} style={{ flexShrink: 0 }}>
           {loading ? "Thinking…" : "Suggest"}
         </button>
+        <button className="btn btn--ghost" onClick={() => setShowRandomizer(true)} style={{ flexShrink: 0 }} title="Surprise me">
+          🎲
+        </button>
       </div>
+
+      {showRandomizer && <RandomizerModal onClose={() => setShowRandomizer(false)} />}
 
       {error && <div style={{ color: "#c05050", marginBottom: 16, fontSize: "0.88rem" }}>{error}</div>}
 

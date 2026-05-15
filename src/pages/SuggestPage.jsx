@@ -31,6 +31,17 @@ export default function SuggestPage({ cabinet }) {
 
   const hasSuggestions = result && (result.can_make?.length > 0 || result.almost_there?.length > 0);
 
+  const TAGS = ["sour", "stirred", "tropical", "easy", "spirit-forward", "citrusy", "refreshing", "classic", "spicy", "creamy", "low-ABV", "after-dinner"];
+
+  function toggleTag(tag) {
+    setQuery((q) => {
+      const parts = q.split(",").map(s => s.trim()).filter(Boolean);
+      return parts.includes(tag) ? parts.filter(t => t !== tag).join(", ") : [...parts, tag].join(", ");
+    });
+  }
+
+  const activeTags = query.split(",").map(s => s.trim()).filter(Boolean);
+
   return (
     <div style={{ maxWidth: 680, margin: "0 auto" }}>
       <div style={{ marginBottom: 20 }}>
@@ -38,6 +49,24 @@ export default function SuggestPage({ cabinet }) {
         <p style={{ color: "var(--text-muted)", fontSize: "0.88rem" }}>
           {cabinet.length} bottle{cabinet.length !== 1 ? "s" : ""} in your cabinet
         </p>
+      </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+        {TAGS.map(tag => (
+          <button
+            key={tag}
+            onClick={() => toggleTag(tag)}
+            style={{
+              padding: "4px 10px", borderRadius: 20, fontSize: "0.78rem", cursor: "pointer",
+              border: "1px solid", transition: "all 0.15s",
+              background: activeTags.includes(tag) ? "var(--amber)" : "none",
+              color: activeTags.includes(tag) ? "#0f0d0b" : "var(--text-muted)",
+              borderColor: activeTags.includes(tag) ? "var(--amber)" : "var(--border)",
+            }}
+          >
+            {tag}
+          </button>
+        ))}
       </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>

@@ -62,11 +62,14 @@ Deno.serve(async (req) => {
   // Build the full list of spirit types available (cabinet + assumed bitters)
   const cabinetSpirits = [
     ...new Set([
-      ...cabinet.flatMap((b) =>
-        [b.spirit_type, b.subcategory, b.canonical_name]
+      ...cabinet.flatMap((b) => {
+        const terms = [b.spirit_type, b.subcategory, b.canonical_name]
           .filter(Boolean)
-          .map((s) => s!.toLowerCase())
-      ),
+          .map((s) => s!.toLowerCase());
+        // Also add individual words from subcategory so "american vodka" matches "vodka"
+        const subWords = (b.subcategory || "").toLowerCase().split(/\s+/).filter(w => w.length > 2);
+        return [...terms, ...subWords];
+      }),
       ...ASSUMED_BITTERS,
     ]),
   ];

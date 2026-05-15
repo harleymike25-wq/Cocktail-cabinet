@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "../lib/supabase";
 
 const QUALITY_COLOR = {
   exact: "var(--green)",
@@ -29,6 +30,14 @@ function AlmostCard({ suggestion }) {
 
 function CanMakeCard({ suggestion }) {
   const [open, setOpen] = useState(false);
+  const [recipe, setRecipe] = useState(null);
+
+  useEffect(() => {
+    if (!open || recipe) return;
+    supabase.from("recipes").select("*").ilike("name", suggestion.name).single()
+      .then(({ data }) => { if (data) setRecipe(data); });
+  }, [open]);
+
   return (
     <div className="card" style={{ cursor: "pointer" }} onClick={() => setOpen((v) => !v)}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
@@ -44,20 +53,49 @@ function CanMakeCard({ suggestion }) {
       </div>
 
       {open && (
-        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }} onClick={(e) => e.stopPropagation()}>
           {suggestion.explanation && (
             <div style={{ fontSize: "0.88rem", color: "var(--text-muted)", marginBottom: 10, lineHeight: 1.65 }}>
               {suggestion.explanation}
             </div>
           )}
           {suggestion.substitutions?.length > 0 && (
-            <div style={{ fontSize: "0.82rem", color: "var(--amber)", marginBottom: 8 }}>
+            <div style={{ fontSize: "0.82rem", color: "var(--amber)", marginBottom: 10 }}>
               Sub: {suggestion.substitutions.join("; ")}
             </div>
           )}
-          {suggestion.recipe_highlight && (
-            <div style={{ fontSize: "0.82rem", color: "var(--text-muted)", fontStyle: "italic" }}>
-              Tip: {suggestion.recipe_highlight}
+
+          {recipe && (
+            <div style={{ marginTop: 12, borderTop: "1px solid var(--border)", paddingTop: 12 }}>
+              {recipe.glassware && (
+                <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: 10 }}>
+                  Glass: {recipe.glassware}
+                </div>
+              )}
+              <div className="section-title">Ingredients</div>
+              <ul style={{ margin: "0 0 14px", padding: "0 0 0 16px", fontSize: "0.87rem", lineHeight: 1.9 }}>
+                {(recipe.ingredients || []).map((ing, i) => (
+                  <li key={i}>
+                    {typeof ing === "string" ? ing
+                      : [ing.amount, ing.unit, ing.ingredient].filter(Boolean).join(" ")}
+                    {ing.optional ? " (optional)" : ""}
+                  </li>
+                ))}
+              </ul>
+              <div className="section-title">Method</div>
+              <p style={{ fontSize: "0.87rem", color: "var(--text-muted)", lineHeight: 1.7, margin: "0 0 10px" }}>
+                {recipe.instructions}
+              </p>
+              {recipe.garnish && (
+                <div style={{ fontSize: "0.83rem", color: "var(--text-muted)" }}>
+                  <strong style={{ color: "var(--text)" }}>Garnish:</strong> {recipe.garnish}
+                </div>
+              )}
+              {suggestion.recipe_highlight && (
+                <div style={{ fontSize: "0.82rem", color: "var(--amber)", marginTop: 10, fontStyle: "italic" }}>
+                  Tip: {suggestion.recipe_highlight}
+                </div>
+              )}
             </div>
           )}
         </div>

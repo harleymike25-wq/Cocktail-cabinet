@@ -7,15 +7,22 @@ export default function PhotoCapture({ onCapture }) {
   function handleFile(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target.result;
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const MAX = 1280;
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
       setPreview(dataUrl);
-      const [header, data] = dataUrl.split(",");
-      const mimeType = header.match(/:(.*?);/)?.[1] || "image/jpeg";
-      onCapture(data, mimeType);
+      const data = dataUrl.split(",")[1];
+      onCapture(data, "image/jpeg");
     };
-    reader.readAsDataURL(file);
+    img.src = objectUrl;
   }
 
   function openCamera() {

@@ -45,8 +45,8 @@ export default function CabinetPage({ cabinet }) {
           origin: data.origin || "",
         });
       }
-    } catch {
-      setError("Failed to identify — fill in manually");
+    } catch (err) {
+      setError(`Failed to identify: ${err.message || "network error"}`);
     } finally {
       setIdentifying(false);
     }

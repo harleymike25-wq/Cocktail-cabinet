@@ -16,6 +16,11 @@ export async function identifyBottle(image, mimeType) {
     headers: authHeaders,
     body: JSON.stringify({ image, mimeType }),
   });
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("identify-bottle error", res.status, text);
+    throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
+  }
   return res.json();
 }
 

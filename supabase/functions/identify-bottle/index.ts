@@ -17,7 +17,9 @@ Deno.serve(async (req) => {
   const { image, mimeType = "image/jpeg" } = body;
   if (!image) return json({ error: "image field required (base64)" }, 400);
 
-  const response = await client.messages.create({
+  let response;
+  try {
+    response = await client.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 1024,
     messages: [
@@ -48,7 +50,12 @@ Translate non-English names in canonical_name — keep original spelling in bran
         ],
       },
     ],
-  });
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Claude API error:", msg);
+    return json({ error: `Claude API error: ${msg}` }, 500);
+  }
 
   const text = response.content[0].type === "text" ? response.content[0].text.trim() : "";
   try {
